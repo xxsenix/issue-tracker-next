@@ -4,10 +4,10 @@ import { IssueStatusBadge, Link } from "@/app/components";
 import IssueActions from "./IssueActions";
 import { Issue, Status } from "@prisma/client";
 import NextLink from "next/link";
-import { ArrowUpIcon } from "@radix-ui/react-icons";
+import { ArrowDownIcon, ArrowUpIcon } from "@radix-ui/react-icons";
 
 interface Props {
-  searchParams: { status: Status; orderBy: keyof Issue };
+  searchParams: { status: Status; orderBy: keyof Issue; sortOrder: string };
 }
 
 const IssuesPage = async ({ searchParams }: Props) => {
@@ -25,10 +25,18 @@ const IssuesPage = async ({ searchParams }: Props) => {
   const status = statuses.includes(searchParams.status)
     ? searchParams.status
     : undefined;
+
+  const orderBy = columns
+    .map((column) => column.value)
+    .includes(searchParams.orderBy)
+    ? { [searchParams.orderBy]: searchParams.sortOrder || "asc" }
+    : undefined;
+
   const issues = await prisma.issue.findMany({
     where: {
       status,
     },
+    orderBy,
   });
   return (
     <div>
@@ -40,14 +48,25 @@ const IssuesPage = async ({ searchParams }: Props) => {
               <Table.ColumnHeaderCell key={column.value}>
                 <NextLink
                   href={{
-                    query: { ...searchParams, orderBy: column.value },
+                    query: {
+                      ...searchParams,
+                      orderBy: column.value,
+                      sortOrder:
+                        searchParams.orderBy === column.value &&
+                        searchParams.sortOrder !== "desc"
+                          ? "desc"
+                          : "asc",
+                    },
                   }}
                 >
                   {column.label}
                 </NextLink>
-                {column.value === searchParams.orderBy && (
-                  <ArrowUpIcon className="inline" />
-                )}
+                {column.value === searchParams.orderBy &&
+                  (searchParams.sortOrder === "desc" ? (
+                    <ArrowDownIcon className="inline" />
+                  ) : (
+                    <ArrowUpIcon className="inline" />
+                  ))}
               </Table.ColumnHeaderCell>
             ))}
           </Table.Row>
